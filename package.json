@@ -49,6 +49,7 @@
   "build": {
     "appId": "com.studynest.app",
     "productName": "StudyNest",
+    "icon": "build/icons/icon",
     "directories": {
       "buildResources": "build",
       "output": "release"
