@@ -181,6 +181,9 @@ const SyllabusSection = () => {
     setLinkUrl("");
   };
 
+  // State for hover instructions in Time Saver Zone
+  const [showPromptInstructions, setShowPromptInstructions] = useState(false);
+
   // Shooting star tracks for the import panel backdrop
   const shootingTracks = useMemo(
     () => [
@@ -193,6 +196,23 @@ const SyllabusSection = () => {
     ],
     []
   );
+
+  // ChatGPT prompt for extracting syllabus
+  const chatGptPrompt = `Please extract all subjects and their chapters/modules from this syllabus PDF. Format your response as:
+
+Subject 1: [Subject Name]
+Chapter 1: [Chapter Title]
+Chapter 2: [Chapter Title]
+...
+
+Subject 2: [Next Subject Name]
+Chapter 1: [Chapter Title]
+...`;
+
+  const copyPromptToClipboard = () => {
+    navigator.clipboard.writeText(chatGptPrompt);
+    alert("Prompt copied! Now paste it in ChatGPT along with your PDF.");
+  };
 
   // --- Offline AI Import helpers ---
   const openPdfPicker = async () => {
@@ -326,8 +346,10 @@ const SyllabusSection = () => {
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:gap-6">
           <div className="flex-1">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
-              <span className="h-1 w-1 rounded-full bg-primary" />
-              Shooting Star Drop Zone
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Time Saver Zone
             </span>
             <h4 className="mt-3 text-lg font-semibold text-white drop-shadow">Import from PDF</h4>
             <p className="text-sm text-white/80 drop-shadow-sm">
@@ -353,30 +375,83 @@ const SyllabusSection = () => {
           </div>
           <div
             className={classNames(
-              "flex min-h-[180px] flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-white/5 p-6 backdrop-blur-sm transition lg:min-h-[220px]",
+              "relative flex min-h-[180px] flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 backdrop-blur-sm transition lg:min-h-[220px]",
               importDragActive
                 ? "border-white/80 bg-white/15 shadow-lg"
-                : "border-white/30 hover:border-white/50 hover:bg-white/10"
+                : "border-white/30 hover:border-white/50",
+              showPromptInstructions ? "bg-white/5" : "bg-white/5 hover:bg-white/10"
             )}
+            onMouseEnter={() => setShowPromptInstructions(true)}
+            onMouseLeave={() => setShowPromptInstructions(false)}
           >
-            <svg
-              className="mb-3 h-12 w-12 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            <p className="text-center text-sm font-medium text-white/90">Drop PDF here</p>
-            <p className="mt-1 text-center text-xs text-white/60">
-              {aiBusy ? "Analyzing..." : "Accepts .pdf files"}
-            </p>
+            {/* Blur overlay when instructions shown */}
+            {showPromptInstructions && (
+              <div className="absolute inset-0 z-0 rounded-2xl backdrop-blur-md bg-black/60" />
+            )}
+            
+            {/* Default view: UFO icon and drop zone */}
+            <div className={classNames(
+              "flex flex-col items-center justify-center transition-opacity duration-300",
+              showPromptInstructions ? "opacity-0" : "opacity-100"
+            )}>
+              {/* UFO Icon */}
+              <svg
+                className="mb-3 h-16 w-16 text-white/70"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <ellipse cx="12" cy="12" rx="9" ry="4" opacity="0.3"/>
+                <path d="M12 2c-2.2 0-4 1.8-4 4v2c-3.3.5-6 2.5-6 5 0 2.8 4 5 10 5s10-2.2 10-5c0-2.5-2.7-4.5-6-5V6c0-2.2-1.8-4-4-4zm0 2c1.1 0 2 .9 2 2v1.7c-.7-.1-1.3-.2-2-.2s-1.3.1-2 .2V6c0-1.1.9-2 2-2z"/>
+                <circle cx="7" cy="13" r="1"/>
+                <circle cx="12" cy="13" r="1"/>
+                <circle cx="17" cy="13" r="1"/>
+                <path d="M12 14c-4.4 0-8 1.3-8 3v2c0 1.7 3.6 3 8 3s8-1.3 8-3v-2c0-1.7-3.6-3-8-3z" opacity="0.2"/>
+              </svg>
+              <p className="text-center text-sm font-medium text-white/90">Drop PDF here</p>
+              <p className="mt-1 text-center text-xs text-white/60">
+                {aiBusy ? "Analyzing..." : "Hover for ChatGPT shortcut"}
+              </p>
+            </div>
+
+            {/* Hover view: Instructions */}
+            {showPromptInstructions && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <h5 className="text-sm font-bold text-white">Quick ChatGPT Method</h5>
+                </div>
+                <ol className="space-y-2 text-left text-xs text-white/90 max-w-xs">
+                  <li className="flex gap-2">
+                    <span className="font-bold text-primary">1.</span>
+                    <span>Click "COPY THE PROMPT" below</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-primary">2.</span>
+                    <span>Open ChatGPT and paste the prompt</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-primary">3.</span>
+                    <span>Attach your syllabus PDF to the chat</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-primary">4.</span>
+                    <span>Copy ChatGPT's response and drop it here</span>
+                  </li>
+                </ol>
+                <button
+                  onClick={copyPromptToClipboard}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs font-bold text-white shadow-lg hover:bg-primary/90 transition"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  COPY THE PROMPT
+                </button>
+              </div>
+            )}
           </div>
         </div>
         {importPath && (
