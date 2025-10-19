@@ -1,11 +1,13 @@
 import { db } from "@store/db";
 
-export const addSubject = async (name: string) => {
-  if (!name.trim()) return;
-  await db.subjects.add({
-    name: name.trim(),
+export const addSubject = async (name: string): Promise<number> => {
+  const trimmed = name.trim();
+  if (!trimmed) return Promise.reject(new Error("Subject name is empty"));
+  const id = await db.subjects.add({
+    name: trimmed,
     createdAt: new Date().toISOString()
   });
+  return id;
 };
 
 export const deleteSubject = async (subjectId: number) => {
@@ -19,14 +21,16 @@ export const deleteSubject = async (subjectId: number) => {
   await db.subjects.delete(subjectId);
 };
 
-export const addChapter = async (subjectId: number, title: string) => {
-  if (!title.trim()) return;
-  await db.chapters.add({
+export const addChapter = async (subjectId: number, title: string): Promise<number> => {
+  const trimmed = title.trim();
+  if (!trimmed) return Promise.reject(new Error("Chapter title is empty"));
+  const id = await db.chapters.add({
     subjectId,
-    title: title.trim(),
+    title: trimmed,
     completed: false,
     createdAt: new Date().toISOString()
   });
+  return id;
 };
 
 export const toggleChapter = async (chapterId: number, completed: boolean) => {
