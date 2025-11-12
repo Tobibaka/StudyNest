@@ -1,7 +1,4 @@
-import React,{ useEffect, useMemo, useRef, useState } from "react";
-import TopBar from "@components/TopBar";
-import { useUIStore } from "@store/uiStore";
-import { logFocusedMinutes } from "@store/focusService";
+import React, { useEffect, useRef, useState } from "react";
 import { useSettingsStore } from "@store/settingsStore";
 
 const POMODORO_DURATION = 25 * 60; // seconds
@@ -13,6 +10,98 @@ const formatTime = (remaining: number) => {
 };
 
 const todayISO = () => new Date().toISOString().split("T")[0];
+
+const buildFlipStyles = (topColor: string, bottomColor: string, borderColor: string) => `
+  @keyframes flipDownFade {
+    0% {
+      transform: rotateX(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: rotateX(-180deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .flip-card {
+    perspective: 1000px;
+  }
+
+  .digit-half {
+    position: absolute;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    background: ${topColor};
+  }
+
+  .digit-top {
+    top: 0;
+    border-bottom: 1px solid ${borderColor};
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+
+  .digit-bottom {
+    bottom: 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background: ${bottomColor};
+  }
+
+  .digit-content {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .digit-content-top {
+    height: 200%;
+    top: 0;
+  }
+
+  .digit-content-bottom {
+    height: 200%;
+    bottom: 0;
+  }
+
+  .flip-top-animated {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    transform-origin: bottom;
+    animation: flipDownFade 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 20;
+    backface-visibility: hidden;
+    border-bottom: 1px solid ${borderColor};
+    border-radius: 0.5rem 0.5rem 0 0;
+    background: ${topColor};
+  }
+
+  .flip-bottom-animated {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    animation: fadeOut 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 20;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background: ${bottomColor};
+  }
+`;
 
 const ClockSection = () => {
   const [timeLeft, setTimeLeft] = useState(POMODORO_DURATION);
@@ -141,6 +230,25 @@ const ClockSection = () => {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
+  useEffect(() => {
+    if (!focusMode) return undefined;
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFocusMode(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [focusMode]);
+
   // Theme-aware style variables
   const containerBg = theme === "dark" ? "#0B1220" : "#f8fafc";
   const textColor = theme === "dark" ? "white" : "#0f172a";
@@ -149,99 +257,33 @@ const ClockSection = () => {
   const digitTopBg = theme === "dark" ? "#1e3a5f" : "#e0e7ff";
   const digitBottomBg = theme === "dark" ? "#2d4a6f" : "#c7d2fe";
 
+  if (focusMode) {
+    const focusDigitTopBg = "#050505";
+    const focusDigitBottomBg = "#050505";
+
+    return (
+      <>
+        <style>{buildFlipStyles(focusDigitTopBg, focusDigitBottomBg, "transparent")}</style>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]"
+          onClick={() => setFocusMode(false)}
+          role="presentation"
+        >
+          <div className="flex items-center gap-[min(6vw,3rem)]">
+            <FlipDigit value={formatDigit(minutes)[0]} textColor="#ffffff" size="focus" />
+            <FlipDigit value={formatDigit(minutes)[1]} textColor="#ffffff" size="focus" />
+            <div className="select-none text-[min(18vw,12rem)] font-semibold leading-none text-white">:</div>
+            <FlipDigit value={formatDigit(seconds)[0]} textColor="#ffffff" size="focus" />
+            <FlipDigit value={formatDigit(seconds)[1]} textColor="#ffffff" size="focus" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="relative flex h-screen flex-col gap-5 p-6" style={{ backgroundColor: containerBg }}>
-      <style>{`
-        @keyframes flipDownFade {
-          0% {
-            transform: rotateX(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: rotateX(-180deg);
-            opacity: 0;
-          }
-        }
-
-        @keyframes fadeOut {
-          0% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0;
-          }
-        }
-
-        .flip-card {
-          perspective: 1000px;
-        }
-
-        .digit-half {
-          position: absolute;
-          width: 100%;
-          height: 50%;
-          overflow: hidden;
-          background: ${digitTopBg};
-        }
-
-        .digit-top {
-          top: 0;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-          border-radius: 0.5rem 0.5rem 0 0;
-        }
-
-        .digit-bottom {
-          bottom: 0;
-          border-radius: 0 0 0.5rem 0.5rem;
-          background: ${digitBottomBg};
-        }
-
-        .digit-content {
-          position: absolute;
-          width: 100%;
-          left: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .digit-content-top {
-          height: 200%;
-          top: 0;
-        }
-
-        .digit-content-bottom {
-          height: 200%;
-          bottom: 0;
-        }
-
-        .flip-top-animated {
-          position: absolute;
-          top: 0;
-          width: 100%;
-          height: 50%;
-          overflow: hidden;
-          transform-origin: bottom;
-          animation: flipDownFade 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
-          z-index: 20;
-          backface-visibility: hidden;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-          border-radius: 0.5rem 0.5rem 0 0;
-          background: ${digitTopBg};
-        }
-
-        .flip-bottom-animated {
-          position: absolute;
-          bottom: 0;
-          width: 100%;
-          height: 50%;
-          overflow: hidden;
-          animation: fadeOut 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
-          z-index: 20;
-          border-radius: 0 0 0.5rem 0.5rem;
-          background: ${digitBottomBg};
-        }
-      `}</style>
+      <style>{buildFlipStyles(digitTopBg, digitBottomBg, "rgba(0, 0, 0, 0.4)")}</style>
 
       {/* Top Bar */}
       <div className="flex items-center justify-between">
@@ -249,24 +291,20 @@ const ClockSection = () => {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => setFocusMode(!focusMode)}
+            onClick={() => setFocusMode(true)}
             className="rounded-full border-2 px-4 py-2 text-sm font-semibold transition hover:opacity-80"
             style={{ borderColor: textColor, color: textColor }}
           >
-            {focusMode ? "Disable Focus Mode" : "Enter Focus Mode"}
+            Enter Focus Mode
           </button>
         </div>
       </div>
 
       {/* Clock Section */}
       <section
-        className={`relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl p-8 transition-all duration-500 ${
-          focusMode 
-            ? "fixed inset-0 z-50 m-0 rounded-none bg-transparent scale-100" 
-            : "border shadow-lg"
-        }`}
-        style={{ 
-          backgroundColor: focusMode ? 'transparent' : containerBg,
+        className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl border p-8 shadow-lg"
+        style={{
+          backgroundColor: containerBg,
           borderColor: theme === "dark" ? "#374151" : "#e5e7eb"
         }}
       >
@@ -274,11 +312,11 @@ const ClockSection = () => {
         
         {/* Flip Clock Display */}
         <div className="flex items-center gap-3 mb-6">
-          <FlipDigit value={formatDigit(minutes)[0]} textColor={textColor} digitTopBg={digitTopBg} digitBottomBg={digitBottomBg} />
-          <FlipDigit value={formatDigit(minutes)[1]} textColor={textColor} digitTopBg={digitTopBg} digitBottomBg={digitBottomBg} />
+          <FlipDigit value={formatDigit(minutes)[0]} textColor={textColor} />
+          <FlipDigit value={formatDigit(minutes)[1]} textColor={textColor} />
           <div className="text-6xl font-bold mx-2" style={{ color: textColor }}>:</div>
-          <FlipDigit value={formatDigit(seconds)[0]} textColor={textColor} digitTopBg={digitTopBg} digitBottomBg={digitBottomBg} />
-          <FlipDigit value={formatDigit(seconds)[1]} textColor={textColor} digitTopBg={digitTopBg} digitBottomBg={digitBottomBg} />
+          <FlipDigit value={formatDigit(seconds)[0]} textColor={textColor} />
+          <FlipDigit value={formatDigit(seconds)[1]} textColor={textColor} />
         </div>
 
         <p className="text-sm mb-8" style={{ color: textMutedColor }}>
@@ -320,10 +358,6 @@ const ClockSection = () => {
         </div>
       </section>
 
-      {/* Blur overlay for focus mode */}
-      {focusMode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 pointer-events-none" />
-      )}
     </div>
   );
 };
@@ -331,11 +365,10 @@ const ClockSection = () => {
 interface FlipDigitProps {
   value: string;
   textColor: string;
-  digitTopBg: string;
-  digitBottomBg: string;
+  size?: "default" | "focus";
 }
 
-const FlipDigit: React.FC<FlipDigitProps> = ({ value, textColor, digitTopBg, digitBottomBg }) => {
+const FlipDigit: React.FC<FlipDigitProps> = ({ value, textColor, size = "default" }) => {
   const [displayDigit, setDisplayDigit] = useState(value);
   const [isFlipping, setIsFlipping] = useState(false);
 
@@ -349,29 +382,38 @@ const FlipDigit: React.FC<FlipDigitProps> = ({ value, textColor, digitTopBg, dig
       return () => clearTimeout(timer);
     }
   }, [value, displayDigit]);
+  const containerClass =
+    size === "focus"
+      ? "flip-card relative w-[20vw] h-[28vw] min-w-[140px] min-h-[200px] max-w-[320px] max-h-[420px]"
+      : "flip-card relative w-16 h-24 sm:w-20 sm:h-28";
+
+  const textClass =
+    size === "focus"
+      ? "text-[min(18vw,12rem)] leading-none"
+      : "text-5xl sm:text-6xl";
 
   return (
-    <div className="flip-card relative w-16 h-24 sm:w-20 sm:h-28">
+    <div className={containerClass}>
       <div className="relative w-full h-full">
         <div className="digit-half digit-top" style={{ zIndex: 10 }}>
-          <div className="digit-content digit-content-top text-5xl sm:text-6xl font-bold" style={{ color: textColor }}>
+          <div className={`digit-content digit-content-top ${textClass} font-bold`} style={{ color: textColor }}>
             {value}
           </div>
         </div>
         <div className="digit-half digit-bottom" style={{ zIndex: 5 }}>
-          <div className="digit-content digit-content-bottom text-5xl sm:text-6xl font-bold" style={{ color: textColor }}>
+          <div className={`digit-content digit-content-bottom ${textClass} font-bold`} style={{ color: textColor }}>
             {value}
           </div>
         </div>
         {isFlipping && (
           <>
             <div className="flip-top-animated">
-              <div className="digit-content digit-content-top text-5xl sm:text-6xl font-bold" style={{ color: textColor }}>
+              <div className={`digit-content digit-content-top ${textClass} font-bold`} style={{ color: textColor }}>
                 {displayDigit}
               </div>
             </div>
             <div className="flip-bottom-animated">
-              <div className="digit-content digit-content-bottom text-5xl sm:text-6xl font-bold" style={{ color: textColor }}>
+              <div className={`digit-content digit-content-bottom ${textClass} font-bold`} style={{ color: textColor }}>
                 {displayDigit}
               </div>
             </div>
