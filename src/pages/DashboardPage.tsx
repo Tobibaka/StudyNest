@@ -3,6 +3,7 @@ import SyllabusSection from "@components/syllabus/SyllabusSection";
 import TasksSection from "@components/tasks/TasksSection";
 import ClockSection from "@components/clock/ClockSection";
 import SettingsSection from "@components/settings/SettingsSection";
+import EscapeSection from "@components/escape/EscapeSection";
 import { useUIStore } from "@store/uiStore";
 
 const DashboardPage = () => {
@@ -14,6 +15,8 @@ const DashboardPage = () => {
         return <TasksSection />;
       case "clock":
         return <ClockSection />;
+      case "escape":
+        return <EscapeSection />;
       case "settings":
         return <SettingsSection />;
       case "syllabus":
