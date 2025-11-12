@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { StateCreator } from "zustand";
 
-export type DashboardSection = "syllabus" | "tasks" | "clock" | "settings";
+export type DashboardSection = "syllabus" | "tasks" | "clock" | "escape" | "settings";
 
 interface UIState {
   section: DashboardSection;
