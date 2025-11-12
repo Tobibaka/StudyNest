@@ -51,7 +51,6 @@
   "build": {
     "appId": "com.studynest.app",
     "productName": "StudyNest",
-    "icon": "build/icons/icon",
     "directories": {
       "buildResources": "build",
       "output": "release"
@@ -65,18 +64,21 @@
       "main": "dist-electron/main.js"
     },
     "mac": {
+      "icon": "build/icons/icon.icns",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
+      "icon": "build/icons/icon.png",
       "target": [
         "nsis",
         "zip"
       ]
     },
     "linux": {
+      "icon": "build/icons/icon.png",
       "target": [
         "AppImage",
         "deb",
